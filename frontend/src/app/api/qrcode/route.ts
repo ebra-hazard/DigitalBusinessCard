@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     
     const response = await fetch(backendUrl, {
       method: 'GET',
-      redirect: 'follow',
+      redirect: 'follow',  // Follow redirects (QR endpoint redirects to external QR server)
     });
 
     if (!response.ok) {
