@@ -4,7 +4,6 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 import uuid
 import slugify
-import os
 
 import database_models as db
 import models
@@ -213,24 +212,25 @@ async def create_card(session: AsyncSession, employee: db.Employee) -> db.Card:
     company = await get_company_by_id(session, employee.company_id)
     company_slug = company.slug if company else str(employee.company_id)
 
-    # Use environment variables for configurable URLs (works for local, staging, production)
+    # Use environment variables for URLs - allows dynamic configuration on network changes
+    import os
     API_HOST = os.getenv("API_HOST", "localhost")
     API_PORT = os.getenv("API_PORT", "8000")
     FRONTEND_HOST = os.getenv("FRONTEND_HOST", "localhost")
     FRONTEND_PORT = os.getenv("FRONTEND_PORT", "3000")
-    
-    # Build protocol based on environment
     ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+    
+    # Determine protocol based on environment
     PROTOCOL = "https" if ENVIRONMENT == "production" else "http"
-
+    
     # Card URL for viewing the digital card
-    card_url = f"{PROTOCOL}://{FRONTEND_HOST}:{FRONTEND_PORT}/card/{company_slug}/{employee.public_slug}" if FRONTEND_PORT != "443" else f"{PROTOCOL}://{FRONTEND_HOST}/card/{company_slug}/{employee.public_slug}"
+    card_url = f"{PROTOCOL}://{FRONTEND_HOST}:{FRONTEND_PORT}/card/{company_slug}/{employee.public_slug}"
     
     # QR code URL - points to the new QR endpoint that redirects to the QR image
-    qr_url = f"{PROTOCOL}://{API_HOST}:{API_PORT}/api/card/{company_slug}/{employee.public_slug}/qr-vcard" if API_PORT != "443" else f"{PROTOCOL}://{API_HOST}/api/card/{company_slug}/{employee.public_slug}/qr-vcard"
+    qr_url = f"{PROTOCOL}://{API_HOST}:{API_PORT}/api/card/{company_slug}/{employee.public_slug}/qr-vcard"
 
     # vCard URL - points to the API endpoint that returns the .vcf file
-    vcard_url = f"http://{API_HOST}:8000/api/card/{company_slug}/{employee.public_slug}/vcard"
+    vcard_url = f"{PROTOCOL}://{API_HOST}:{API_PORT}/api/card/{company_slug}/{employee.public_slug}/vcard"
     
     card = db.Card(
         employee_id=employee.id,

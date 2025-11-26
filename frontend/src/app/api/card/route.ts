@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function getBackendUrl(): string {
+  const apiHost = process.env.NEXT_PUBLIC_API_HOST || process.env.API_HOST || 'localhost';
+  const apiPort = process.env.NEXT_PUBLIC_API_PORT || process.env.API_PORT || '8000';
+  return `http://${apiHost}:${apiPort}/api`;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const company_slug = searchParams.get('company_slug');
@@ -13,9 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL 
-      ? `${process.env.NEXT_PUBLIC_API_URL}/card/${company_slug}/${employee_slug}`
-      : `http://localhost:8000/api/card/${company_slug}/${employee_slug}`;
+    const apiBase = getBackendUrl();
+    const backendUrl = `${apiBase}/card/${company_slug}/${employee_slug}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',

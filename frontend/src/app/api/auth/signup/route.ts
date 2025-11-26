@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function getBackendUrl(): string {
+  const apiHost = process.env.NEXT_PUBLIC_API_HOST || process.env.API_HOST || 'localhost';
+  const apiPort = process.env.NEXT_PUBLIC_API_PORT || process.env.API_PORT || '8000';
+  return `http://${apiHost}:${apiPort}/api`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL 
-      ? `${process.env.NEXT_PUBLIC_API_URL}/auth/signup`
-      : 'http://localhost:8000/api/auth/signup';
+    const apiBase = getBackendUrl();
+    const backendUrl = `${apiBase}/auth/signup`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',

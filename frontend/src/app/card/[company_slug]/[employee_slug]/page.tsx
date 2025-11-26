@@ -173,12 +173,14 @@ export default function PublicCardPage({
                 <h1 className="text-3xl sm:text-4xl font-bold text-white text-center mb-2">
                   {card.employee_name}
                 </h1>
-                <p
-                  className="text-lg font-semibold text-center mb-1"
-                  style={{ color: brandColor }}
-                >
-                  {card.job_title || 'Professional'}
-                </p>
+                {card.job_title && (
+                  <p
+                    className="text-lg font-semibold text-center mb-1"
+                    style={{ color: brandColor }}
+                  >
+                    {card.job_title}
+                  </p>
+                )}
                 <p className="text-sm text-gray-300 text-center mb-4">
                   {card.company_name}
                 </p>

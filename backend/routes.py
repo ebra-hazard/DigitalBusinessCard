@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, Body
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import uuid
 import urllib.parse
-import os
 
 import services
 import models
 import vcard_utils
 from database import get_db
-from security import create_access_token, decode_token, verify_password
+from security import create_access_token, decode_token, verify_password, hash_password
 
 router = APIRouter(prefix="/api", tags=["digital-cards"])
 
@@ -99,6 +98,62 @@ async def signup(user_data: models.UserCreate, db: AsyncSession = Depends(get_db
         "company_id": company.id,
         "role": user.role,
     }
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    password_data: dict = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change user password (authenticated users only)."""
+    user_id = current_user.get("user_id")
+    current_password = password_data.get("current_password")
+    new_password = password_data.get("new_password")
+    
+    if not user_id or not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Missing required fields")
+    
+    user = await services.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify current password
+    if not verify_password(current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    
+    # Update password
+    user.password_hash = hash_password(new_password)
+    db.add(user)
+    await db.commit()
+    
+    return {"message": "Password changed successfully"}
+
+
+@router.post("/auth/reset-password-request")
+async def reset_password_request(
+    reset_data: dict = Body(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Request password reset via email (placeholder implementation)."""
+    email = reset_data.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    user = await services.get_user_by_email(db, email)
+    if not user:
+        # Don't reveal if email exists for security
+        return {"message": "If an account with this email exists, a reset link has been sent"}
+    
+    # TODO: In production, send email with reset token
+    # For now, just return success message
+    # In a real app, you would:
+    # 1. Generate a reset token
+    # 2. Store it in database with expiration
+    # 3. Send email with reset link containing the token
+    
+    return {"message": "Password reset link sent to email"}
 
 
 @router.post("/auth/login", response_model=models.TokenResponse)
@@ -533,13 +588,14 @@ async def get_qr_vcard(
     if not employee:
         raise HTTPException(status_code=404, detail="Card not found")
     
-    # Build vCard URL using environment variables for flexibility across environments
+    # Build vCard URL using environment variables for dynamic configuration
+    import os
     API_HOST = os.getenv("API_HOST", "localhost")
     API_PORT = os.getenv("API_PORT", "8000")
     ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
     PROTOCOL = "https" if ENVIRONMENT == "production" else "http"
     
-    vcard_url = f"{PROTOCOL}://{API_HOST}:{API_PORT}/api/card/{company_slug}/{employee_slug}/vcard" if API_PORT != "443" else f"{PROTOCOL}://{API_HOST}/api/card/{company_slug}/{employee_slug}/vcard"
+    vcard_url = f"{PROTOCOL}://{API_HOST}:{API_PORT}/api/card/{company_slug}/{employee_slug}/vcard"
     
     # Generate QR code URL from QR Server API
     qr_image_url = f"https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={urllib.parse.quote(vcard_url)}"

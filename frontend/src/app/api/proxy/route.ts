@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function getBackendUrl(path: string): string {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-  return `${apiUrl}${path}`;
+function getBackendUrl(): string {
+  const apiHost = process.env.NEXT_PUBLIC_API_HOST || process.env.API_HOST || 'localhost';
+  const apiPort = process.env.NEXT_PUBLIC_API_PORT || process.env.API_PORT || '8000';
+  return `http://${apiHost}:${apiPort}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const backendUrl = getBackendUrl(path);
+    const apiBase = getBackendUrl();
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -65,7 +67,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const backendUrl = getBackendUrl(path);
+    const apiBase = getBackendUrl();
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -114,7 +117,8 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const backendUrl = getBackendUrl(path);
+    const apiBase = getBackendUrl();
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -162,7 +166,8 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const backendUrl = getBackendUrl(path);
+    const apiBase = getBackendUrl();
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

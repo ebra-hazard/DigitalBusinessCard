@@ -27,6 +27,12 @@ export default function CompanySettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
 
   const presetColors = [
     '#3B82F6', // Blue
@@ -116,8 +122,8 @@ export default function CompanySettingsPage() {
     setError('');
 
     try {
-        const response = await axios.put(
-          `/api/proxy?path=/company/${companyId}`,
+      const response = await axios.put(
+        `/api/proxy?path=/company/${companyId}`,
         {
           name: formData.name,
           domain: formData.domain || null,
@@ -135,6 +141,55 @@ export default function CompanySettingsPage() {
     } catch (err: any) {
       console.error('Error saving settings:', err);
       setError(err.response?.data?.detail || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setError('');
+    setMessage('');
+
+    if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+      setError('All password fields are required');
+      return;
+    }
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.new_password.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+
+    setSaving(true);
+    const token = localStorage.getItem('token');
+
+    try {
+      await axios.post(
+        `/api/proxy?path=/auth/change-password`,
+        {
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setMessage('✅ Password changed successfully!');
+      setPasswordData({
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+      setShowPasswordForm(false);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to change password');
     } finally {
       setSaving(false);
     }
@@ -291,6 +346,99 @@ export default function CompanySettingsPage() {
               >
                 {saving ? 'Saving...' : '💾 Save Settings'}
               </button>
+
+              {/* Change Password Section */}
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">🔐 Security</h3>
+                
+                {!showPasswordForm ? (
+                  <button
+                    onClick={() => setShowPasswordForm(true)}
+                    className="w-full py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                  >
+                    🔑 Change Password
+                  </button>
+                ) : (
+                  <div className="space-y-4 bg-gray-50 p-6 rounded-lg">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordData.current_password}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            current_password: e.target.value,
+                          })
+                        }
+                        placeholder="Enter current password"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordData.new_password}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            new_password: e.target.value,
+                          })
+                        }
+                        placeholder="Enter new password (min 6 characters)"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordData.confirm_password}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            confirm_password: e.target.value,
+                          })
+                        }
+                        placeholder="Confirm new password"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handlePasswordChange}
+                        disabled={saving}
+                        className="flex-1 py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors duration-200"
+                      >
+                        {saving ? 'Updating...' : 'Update Password'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowPasswordForm(false);
+                          setPasswordData({
+                            current_password: '',
+                            new_password: '',
+                            confirm_password: '',
+                          });
+                        }}
+                        className="flex-1 py-2 px-4 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

@@ -5,15 +5,15 @@ services:
     image: postgres:15-alpine
     container_name: digital-cards-db
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-digital_cards}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,16 +24,16 @@ services:
       dockerfile: backend/Dockerfile
     container_name: digital-cards-backend
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      SECRET_KEY: ${SECRET_KEY}
-      CORS_ORIGINS: ${CORS_ORIGINS}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
-      DEBUG: ${DEBUG}
-      ENVIRONMENT: ${ENVIRONMENT}
-      API_HOST: ${API_HOST}
-      API_PORT: ${API_PORT}
-      FRONTEND_HOST: ${FRONTEND_HOST}
-      FRONTEND_PORT: ${FRONTEND_PORT}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:password@postgres:5432/digital_cards}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      API_HOST: ${API_HOST:-localhost}
+      API_PORT: ${API_PORT:-8000}
+      FRONTEND_HOST: ${FRONTEND_HOST:-localhost}
+      FRONTEND_PORT: ${FRONTEND_PORT:-3000}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DEBUG: ${DEBUG:-false}
     ports:
       - "8000:8000"
     depends_on:
@@ -49,8 +49,9 @@ services:
       dockerfile: frontend/Dockerfile
     container_name: digital-cards-frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_API_HOST: ${NEXT_PUBLIC_API_HOST:-localhost}
+      NEXT_PUBLIC_API_PORT: ${NEXT_PUBLIC_API_PORT:-8000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
     ports:
       - "3000:3000"
     depends_on:
