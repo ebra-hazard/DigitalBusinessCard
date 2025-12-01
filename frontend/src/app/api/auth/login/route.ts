@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 function getBackendUrl(): string {
   // When running in Docker, use the service name 'backend'
   // Otherwise use localhost for local development
-  const apiHost = process.env.DOCKER === 'true' ? 'backend' : (process.env.API_HOST || 'localhost');
-  const apiPort = process.env.API_PORT || '8000';
+  const apiHost = process.env.API_HOST_INTERNAL || (process.env.DOCKER === 'true' ? 'backend' : 'localhost');
+  const apiPort = process.env.API_PORT_INTERNAL || '8000';
   return `http://${apiHost}:${apiPort}/api`;
 }
 
