@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function getBackendUrl(): string {
-  const apiHost = process.env.NEXT_PUBLIC_API_HOST || process.env.API_HOST || 'localhost';
-  const apiPort = process.env.NEXT_PUBLIC_API_PORT || process.env.API_PORT || '8000';
+  // When running in Docker, use the service name 'backend'
+  // Otherwise use localhost for local development
+  const apiHost = process.env.DOCKER === 'true' ? 'backend' : (process.env.API_HOST || 'localhost');
+  const apiPort = process.env.API_PORT || '8000';
   return `http://${apiHost}:${apiPort}`;
 }
 
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}${path}`;
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -68,7 +70,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}${path}`;
+    const backendUrl = `${apiBase}/api${path}`;
+    
+    console.log(`[PROXY] URL: ${backendUrl}, Auth: ${auth_header ? 'yes' : 'no'}`);
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -84,20 +88,26 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
+    console.log(`[PROXY] Status: ${response.status}`);
+    const text = await response.text();
+    console.log(`[PROXY] Response: ${text}`);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        errorData || { error: `Backend returned ${response.status}` },
-        { status: response.status }
-      );
+      let errorData = {};
+      try {
+        errorData = JSON.parse(text);
+      } catch (e) {
+        errorData = { error: text || `Backend returned ${response.status}` };
+      }
+      return NextResponse.json(errorData, { status: response.status });
     }
 
-    const data = await response.json();
+    const data = JSON.parse(text);
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Company POST API route error:', error);
+    console.error('[PROXY] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { error: String(error) },
       { status: 500 }
     );
   }
@@ -118,7 +128,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}${path}`;
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -167,7 +177,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}${path}`;
+    const backendUrl = `${apiBase}/api${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

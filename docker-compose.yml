@@ -52,6 +52,9 @@ services:
       NEXT_PUBLIC_API_HOST: ${NEXT_PUBLIC_API_HOST:-localhost}
       NEXT_PUBLIC_API_PORT: ${NEXT_PUBLIC_API_PORT:-8000}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+      API_HOST: backend
+      API_PORT: 8000
+      DOCKER: 'true'
     ports:
       - "3000:3000"
     depends_on:
