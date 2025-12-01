@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}/api${path}`;
+    const backendUrl = `${apiBase}${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}/api${path}`;
+    const backendUrl = `${apiBase}${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}/api${path}`;
+    const backendUrl = `${apiBase}${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const apiBase = getBackendUrl();
-    const backendUrl = `${apiBase}/api${path}`;
+    const backendUrl = `${apiBase}${path}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
