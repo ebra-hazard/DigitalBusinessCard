@@ -14,8 +14,20 @@ class Company(Base):
     name = Column(String(255), nullable=False)
     domain = Column(String(255), unique=True, nullable=True)
     logo_url = Column(Text, nullable=True)
-    brand_color = Column(String(7), nullable=True)
+    brand_color = Column(String(7), nullable=True, default="#000000")
+    brand_secondary_color = Column(String(7), nullable=True, default="#FFFFFF")
+    background_image_url = Column(Text, nullable=True)
     slug = Column(String(255), unique=True, nullable=False)
+    
+    # CMS-like customization fields
+    description = Column(Text, nullable=True)
+    website = Column(String(255), nullable=True)
+    phone = Column(String(20), nullable=True)
+    email = Column(String(255), nullable=True)
+    social_media = Column(JSON, nullable=True, default={})  # {facebook, twitter, linkedin, instagram, etc}
+    custom_css = Column(Text, nullable=True)
+    card_template = Column(String(50), nullable=True, default="default")  # default | modern | minimal | vibrant
+    
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -40,6 +52,14 @@ class Employee(Base):
     bio = Column(Text, nullable=True)
     social_links = Column(JSON, nullable=True, default={})
     public_slug = Column(String(255), unique=True, nullable=False)
+    
+    # CMS customization for cards
+    card_background_color = Column(String(7), nullable=True)
+    card_text_color = Column(String(7), nullable=True)
+    card_accent_color = Column(String(7), nullable=True)
+    card_background_image_url = Column(Text, nullable=True)
+    custom_fields = Column(JSON, nullable=True, default={})  # Additional custom fields
+    
     last_updated = Column(DateTime, server_default=func.now(), onupdate=func.now())
     created_at = Column(DateTime, server_default=func.now())
 

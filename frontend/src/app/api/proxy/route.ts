@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function getBackendUrl(): string {
-  // When running in Docker, use the service name 'backend'
-  // Otherwise use localhost for local development
-  const apiHost = process.env.API_HOST_INTERNAL || (process.env.DOCKER === 'true' ? 'backend' : 'localhost');
-  const apiPort = process.env.API_PORT_INTERNAL || '8000';
+  const apiHost = process.env.NEXT_PUBLIC_API_HOST || process.env.API_HOST || 'localhost';
+  const apiPort = process.env.NEXT_PUBLIC_API_PORT || process.env.API_PORT || '8000';
   return `http://${apiHost}:${apiPort}`;
 }
 
@@ -72,8 +70,6 @@ export async function POST(request: NextRequest) {
     const apiBase = getBackendUrl();
     const backendUrl = `${apiBase}/api${path}`;
     
-    console.log(`[PROXY] URL: ${backendUrl}, Auth: ${auth_header ? 'yes' : 'no'}`);
-    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -88,26 +84,20 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    console.log(`[PROXY] Status: ${response.status}`);
-    const text = await response.text();
-    console.log(`[PROXY] Response: ${text}`);
-
     if (!response.ok) {
-      let errorData = {};
-      try {
-        errorData = JSON.parse(text);
-      } catch (e) {
-        errorData = { error: text || `Backend returned ${response.status}` };
-      }
-      return NextResponse.json(errorData, { status: response.status });
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        errorData || { error: `Backend returned ${response.status}` },
+        { status: response.status }
+      );
     }
 
-    const data = JSON.parse(text);
+    const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('[PROXY] Error:', error);
+    console.error('Company POST API route error:', error);
     return NextResponse.json(
-      { error: String(error) },
+      { error: 'Failed to process request' },
       { status: 500 }
     );
   }

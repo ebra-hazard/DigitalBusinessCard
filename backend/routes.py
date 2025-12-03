@@ -612,3 +612,160 @@ async def get_qr_vcard(
     
     # Redirect to QR Server API to get the image
     return RedirectResponse(url=qr_image_url)
+
+
+# ========== CMS Customization Endpoints ==========
+
+@router.put("/company/{company_id}/branding", response_model=models.CompanyResponse)
+async def update_company_branding(
+    company_id: str,
+    branding_data: dict,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update company branding and customization settings."""
+    company_id = uuid.UUID(company_id)
+    
+    # Verify user is company admin or superadmin
+    if current_user["company_id"] != company_id and current_user["role"] != "superadmin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    company = await services.get_company_by_id(db, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    # Update branding fields
+    for field, value in branding_data.items():
+        if hasattr(company, field):
+            setattr(company, field, value)
+    
+    db.add(company)
+    await db.commit()
+    await db.refresh(company)
+    
+    return company
+
+
+@router.get("/company/{company_id}/branding")
+async def get_company_branding(
+    company_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get company branding settings (public endpoint)."""
+    company_id = uuid.UUID(company_id)
+    company = await services.get_company_by_id(db, company_id)
+    
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    return {
+        "brand_color": company.brand_color,
+        "brand_secondary_color": company.brand_secondary_color,
+        "logo_url": company.logo_url,
+        "background_image_url": company.background_image_url,
+        "card_template": company.card_template,
+        "custom_css": company.custom_css,
+        "social_media": company.social_media,
+    }
+
+
+@router.put("/employee/{employee_id}/card-customization", response_model=models.EmployeeResponse)
+async def update_employee_card_customization(
+    employee_id: str,
+    customization_data: dict,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update employee card customization settings."""
+    employee_id = uuid.UUID(employee_id)
+    employee = await services.get_employee_by_id(db, employee_id)
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Verify authorization
+    if employee.company_id != current_user["company_id"] and current_user["role"] != "superadmin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Update customization fields
+    for field, value in customization_data.items():
+        if hasattr(employee, field):
+            setattr(employee, field, value)
+    
+    db.add(employee)
+    await db.commit()
+    await db.refresh(employee)
+    
+    return employee
+
+
+@router.get("/analytics/card/{employee_id}")
+async def get_card_analytics(
+    employee_id: str,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get analytics data for an employee's card."""
+    employee_id = uuid.UUID(employee_id)
+    employee = await services.get_employee_by_id(db, employee_id)
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Verify authorization
+    if employee.company_id != current_user["company_id"] and current_user["role"] != "superadmin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Get analytics
+    analytics = await services.get_employee_analytics(db, employee_id)
+    
+    return {
+        "employee_id": str(employee_id),
+        "total_views": len(analytics),
+        "analytics": [
+            {
+                "timestamp": event.timestamp,
+                "action": event.action,
+                "device": event.device,
+                "region": event.region,
+            }
+            for event in analytics
+        ]
+    }
+
+
+@router.get("/analytics/company/{company_id}")
+async def get_company_analytics(
+    company_id: str,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get analytics data for the entire company."""
+    company_id = uuid.UUID(company_id)
+    
+    # Verify authorization
+    if company_id != current_user["company_id"] and current_user["role"] != "superadmin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Get company analytics
+    analytics = await services.get_company_analytics(db, company_id)
+    
+    # Group by action
+    action_counts = {}
+    for event in analytics:
+        action_counts[event.action] = action_counts.get(event.action, 0) + 1
+    
+    return {
+        "company_id": str(company_id),
+        "total_events": len(analytics),
+        "action_breakdown": action_counts,
+        "recent_events": [
+            {
+                "timestamp": event.timestamp,
+                "action": event.action,
+                "employee_id": str(event.employee_id) if event.employee_id else None,
+            }
+            for event in sorted(analytics, key=lambda x: x.timestamp, reverse=True)[:50]
+        ]
+    }
+

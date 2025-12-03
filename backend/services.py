@@ -298,6 +298,8 @@ async def get_user_by_id(session: AsyncSession, user_id: uuid.UUID) -> Optional[
 
 # ========== Analytics Services ==========
 
+
+
 async def track_event(
     session: AsyncSession,
     company_id: uuid.UUID,
@@ -348,6 +350,17 @@ async def get_analytics_by_employee(
     return result.scalars().all()
 
 
+# Aliases for new CMS endpoints
+async def get_employee_analytics(session: AsyncSession, employee_id: uuid.UUID) -> List[db.AnalyticsEvent]:
+    """Get analytics for an employee card."""
+    return await get_analytics_by_employee(session, employee_id)
+
+
+async def get_company_analytics(session: AsyncSession, company_id: uuid.UUID) -> List[db.AnalyticsEvent]:
+    """Get analytics for a company."""
+    return await get_analytics_by_company(session, company_id)
+
+
 async def get_analytics_summary(session: AsyncSession, company_id: uuid.UUID) -> dict:
     """Get analytics summary for a company."""
     result = await session.execute(
@@ -364,3 +377,4 @@ async def get_analytics_summary(session: AsyncSession, company_id: uuid.UUID) ->
         summary[action] = count
     
     return summary
+
